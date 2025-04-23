@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyOgWvwkxGGUVPCvFq7FC5pb",
+      "authorship_tag": "ABX9TyOS+hEdt2RiXYy/xP20mUfi",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -28,7 +28,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": null,
+      "execution_count": 1,
       "metadata": {
         "id": "YoinueqV-UkR"
       },
@@ -38,6 +38,11 @@
         "from google.colab import userdata\n",
         "from google.generativeai import GenerativeModel\n",
         "import google.generativeai as genai\n",
+        "\n",
+        "GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')\n",
+        "SERPER_API_KEY = userdata.get('SERPER_API_KEY')\n",
+        "\n",
+        "client = genai.Client(api_key=GOOGLE_API_KEY)\n",
         "\n",
         "# Function to generate insights from image and location\n",
         "def generate_description(imagefile, location):\n",
@@ -107,7 +112,7 @@
         "def search_similar_places(tags, location):\n",
         "    query = f\"photography spots with {', '.join(tags)} in {location}\"\n",
         "    headers = {\n",
-        "        \"X-API-KEY\": userdata.get('SERPER_API_KEY'),\n",
+        "        \"X-API-KEY\": SERPER_API_KEY ,\n",
         "        \"Content-Type\": \"application/json\"\n",
         "    }\n",
         "    payload = {\"q\": query, \"type\": \"images\"}\n",
@@ -116,7 +121,6 @@
         "        results = response.json()\n",
         "        return results.get(\"images\", [])[:3]\n",
         "    else:\n",
-        "        #st.error(\"Error from Serper API\")\n",
         "        return []\n",
         "\n",
         "# --- Function for natural language chat ---\n",
