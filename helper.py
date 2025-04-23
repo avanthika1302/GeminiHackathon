@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyOS+hEdt2RiXYy/xP20mUfi",
+      "authorship_tag": "ABX9TyPX3QLfV01QvF49/jLoJ45b",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -98,8 +98,12 @@
         "    conn.close()\n",
         "\n",
         "def insert_image_metadata(name, email, image_path, location, metadata):\n",
+        "\n",
+        "    db_path = \"userimages.db\"\n",
+        "\n",
         "    try:\n",
-        "        conn = sqlite3.connect(\"userimages.db\")\n",
+        "        init_db(db_path)\n",
+        "        conn = sqlite3.connect(db_path)\n",
         "        cursor = conn.cursor()\n",
         "        cursor.execute(\"INSERT INTO photos (name, email, location, image_name, metadata) VALUES (?, ?, ?, ?, ?)\",\n",
         "                        (name, email, location, image_path, json.dumps(metadata)))\n",
