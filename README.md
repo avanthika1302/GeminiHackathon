@@ -27,12 +27,15 @@ An interactive Streamlit chatbot that helps you understand your photo's style, f
 - **Pillow**: Image processing
 
 ---
+## Folder Structure
+```text
 photo-assistant-chatbot/
 ├── photo_assistant_chatbot.py     # Main Streamlit app
 ├── requirements.txt
 ├── helper.py
 └── .streamlit/
     └── secrets.toml               # Contains SERPER_API_KEY and GEMINI KEY
+```
 
 ## Installation
 
