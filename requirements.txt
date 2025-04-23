@@ -1,0 +1,20 @@
+# --- Core App Framework ---
+streamlit==1.33.0
+
+# --- Image Handling ---
+Pillow==10.2.0
+
+# --- Google Gemini SDK (Choose one based on what you're using) ---
+
+# Option 1: For Google Generative AI SDK
+google-generativeai==0.5.2
+
+# Option 2: If you're using Gemini via Vertex AI (comment one of these options out)
+# google-cloud-aiplatform==1.44.0
+
+# --- API Tools ---
+requests==2.31.0
+
+# --- Optional: Data and JSON handling ---
+python-dotenv==1.0.1  # for managing secrets
+aiofiles==23.2.1       # async file handling if needed
