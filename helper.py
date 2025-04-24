@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyPX3QLfV01QvF49/jLoJ45b",
+      "authorship_tag": "ABX9TyOc629r42PZ+Npnla74huta",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -28,7 +28,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 1,
+      "execution_count": null,
       "metadata": {
         "id": "YoinueqV-UkR"
       },
@@ -64,7 +64,7 @@
         "    - SMCaption\n",
         "    - NearbySpots\n",
         "    \"\"\"\n",
-        "    client = genai.Client(api_key=userdata.get('GOOGLE_API_KEY'))\n",
+        "    client = genai.Client(api_key=GOOGLE_API_KEY)\n",
         "    response = client.models.generate_content(\n",
         "        model=\"gemini-2.0-flash\",\n",
         "        contents=[imagefile.read(), prompt])\n",
@@ -90,14 +90,14 @@
         "            name TEXT,\n",
         "            email TEXT,\n",
         "            location TEXT,\n",
-        "            image_name TEXT,\n",
+        "            image BLOB,\n",
         "            metadata TEXT\n",
         "        )\n",
         "    \"\"\")\n",
         "    conn.commit()\n",
         "    conn.close()\n",
         "\n",
-        "def insert_image_metadata(name, email, image_path, location, metadata):\n",
+        "def insert_image_metadata(name, email, imagefile, location, metadata):\n",
         "\n",
         "    db_path = \"userimages.db\"\n",
         "\n",
@@ -105,8 +105,8 @@
         "        init_db(db_path)\n",
         "        conn = sqlite3.connect(db_path)\n",
         "        cursor = conn.cursor()\n",
-        "        cursor.execute(\"INSERT INTO photos (name, email, location, image_name, metadata) VALUES (?, ?, ?, ?, ?)\",\n",
-        "                        (name, email, location, image_path, json.dumps(metadata)))\n",
+        "        cursor.execute(\"INSERT INTO photos (name, email, location, image, metadata) VALUES (?, ?, ?, ?, ?)\",\n",
+        "                        (name, email, location, imagefile, json.dumps(metadata)))\n",
         "        conn.commit()\n",
         "        conn.close()\n",
         "        return \"success\"\n",
