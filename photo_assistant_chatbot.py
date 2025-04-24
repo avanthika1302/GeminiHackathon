@@ -4,8 +4,8 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyMIohj/eaGKfzq4wl3sm3GI",
-      "include_colab_link": True
+      "authorship_tag": "ABX9TyN5uqGD1tyIh9mlESbFAEPV",
+      "include_colab_link": true
     },
     "kernelspec": {
       "name": "python3",
@@ -39,8 +39,8 @@
         "secrets = toml.load(\"secrets.toml\")\n",
         "\n",
         "# Access the keys\n",
-        "google_api_key = secrets[\"api_keys\"][\"GOOGLE_API_KEY\"]\n",
-        "serper_api_key = secrets[\"api_keys\"][\"SERPER_API_KEY\"]\n",
+        "google_api_key = secrets[\"GOOGLE_API_KEY\"]\n",
+        "serper_api_key = secrets[\"SERPER_API_KEY\"]\n",
         "\n",
         "\n",
         "# --- Session state init ---\n",
@@ -173,7 +173,7 @@
         "id": "XkhUg55KQRxQ",
         "outputId": "67a907b9-b7f6-4057-aa11-accc6b87af0d"
       },
-      "execution_count": 5,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "stream",
