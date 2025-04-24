@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyMPFoSidJB+CVwBNnUJACRt",
+      "authorship_tag": "ABX9TyO7B7EUiK4T1QpZewYcQjuE",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -23,7 +23,7 @@
         "colab_type": "text"
       },
       "source": [
-        "<a href=\"https://colab.research.google.com/github/avanthika1302/GeminiHackathon/blob/main/PhotoAssistantBot.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+        "<a href=\"https://colab.research.google.com/github/avanthika1302/GeminiHackathon/blob/main/photo_assistant_chatbot.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
       ]
     },
     {
@@ -31,7 +31,8 @@
       "source": [
         "import streamlit as st\n",
         "import time, io\n",
-        "from helper import generate_description, clean_json, insert_image_metadata, search_similar_places, answer_question_from_json\n",
+        "import helper\n",
+        "#from helper import generate_description, clean_json, insert_image_metadata, search_similar_places, answer_question_from_json\n",
         "import toml\n",
         "\n",
         "# --- Session state init ---\n",
@@ -109,8 +110,8 @@
         "        with st.spinner(\"Working on uploading...\"):\n",
         "            time.sleep(10)  # simulate processing\n",
         "\n",
-        "        ModelOP = generate_description(st.session_state.last_image, st.session_state.user_info[\"location\"]).text\n",
-        "        insights = clean_json(ModelOP)\n",
+        "        ModelOP = helper.generate_description(st.session_state.last_image, st.session_state.user_info[\"location\"]).text\n",
+        "        insights = helper.clean_json(ModelOP)\n",
         "\n",
         "        #Place holder for uploading an image\n",
         "        st.session_state.last_ModelOP = insights\n",
@@ -143,7 +144,7 @@
         "    elif \"similar\" in cmd:\n",
         "        response = \"Here are some similar photo's I found...\"\n",
         "\n",
-        "        urls = search_similar_places(st.session_state.last_ModelOP,st.session_state.user_info[\"location\"])\n",
+        "        urls = helper.search_similar_places(st.session_state.last_ModelOP,st.session_state.user_info[\"location\"])\n",
         "        for url in urls:\n",
         "          st.image(url['Imageurl'], caption=\"Your uploaded image\", use_container_width=True)\n",
         "    elif \"upload\" in cmd:\n",
@@ -159,19 +160,73 @@
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/",
-          "height": 108
+          "height": 1000
         },
         "id": "XkhUg55KQRxQ",
-        "outputId": "8a3d0135-17b5-4f95-f331-a05d15ef5dc0"
+        "outputId": "67a907b9-b7f6-4057-aa11-accc6b87af0d"
       },
-      "execution_count": null,
+      "execution_count": 5,
       "outputs": [
         {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "2025-04-24 03:35:32.576 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.576 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.577 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.578 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.579 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.579 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.580 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.581 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.582 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.582 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.583 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.584 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.585 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.586 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.586 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.587 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.588 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.588 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.589 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.589 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.590 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.591 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.591 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.592 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.594 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.594 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.598 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.598 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.599 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.599 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.601 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.601 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.602 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.602 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.603 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
+            "2025-04-24 03:35:32.603 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n"
+          ]
+        },
+        {
           "output_type": "error",
-          "ename": "SyntaxError",
-          "evalue": "invalid syntax (<ipython-input-1-6ce57769dd50>, line 11)",
+          "ename": "KeyError",
+          "evalue": "'name'",
           "traceback": [
-            "\u001b[0;36m  File \u001b[0;32m\"<ipython-input-1-6ce57769dd50>\"\u001b[0;36m, line \u001b[0;32m11\u001b[0m\n\u001b[0;31m    from helper import\u001b[0m\n\u001b[0m                       ^\u001b[0m\n\u001b[0;31mSyntaxError\u001b[0m\u001b[0;31m:\u001b[0m invalid syntax\n"
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-5-7247decebab8>\u001b[0m in \u001b[0;36m<cell line: 0>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     52\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     53\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtitle\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"📸 Smart Photography Assistant\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 54\u001b[0;31m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msubheader\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Welcome \"\u001b[0m \u001b[0;34m+\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msession_state\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0muser_info\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m\"name\"\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0;34m\"!\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     55\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmarkdown\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Hi! I'm your Photo Assistant 🤖. Here's what I can do:\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     56\u001b[0m st.markdown(\"\"\"\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'name'"
           ]
         }
       ]
