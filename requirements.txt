@@ -18,3 +18,4 @@ requests==2.31.0
 # --- Optional: Data and JSON handling ---
 python-dotenv==1.0.1  # for managing secrets
 aiofiles==23.2.1       # async file handling if needed
+toml
