@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyO7B7EUiK4T1QpZewYcQjuE",
+      "authorship_tag": "ABX9TyMIohj/eaGKfzq4wl3sm3GI",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -34,6 +34,14 @@
         "import helper\n",
         "#from helper import generate_description, clean_json, insert_image_metadata, search_similar_places, answer_question_from_json\n",
         "import toml\n",
+        "\n",
+        "# Load the .toml file\n",
+        "secrets = toml.load(\"secrets.toml\")\n",
+        "\n",
+        "# Access the keys\n",
+        "google_api_key = secrets[\"api_keys\"][\"GOOGLE_API_KEY\"]\n",
+        "serper_api_key = secrets[\"api_keys\"][\"SERPER_API_KEY\"]\n",
+        "\n",
         "\n",
         "# --- Session state init ---\n",
         "if \"messages\" not in st.session_state:\n",
