@@ -1,4 +1,4 @@
-# Photo_Assistant_Chatbot
+# Photo Assistant Chatbot
 # AI-Powered Photo Assistant Chatbot
 
 An interactive Streamlit chatbot that helps you understand your photo's style, find similar inspirational images online, and even discover nearby places to recreate those vibes — all with a conversational interface!
