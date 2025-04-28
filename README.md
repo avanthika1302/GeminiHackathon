@@ -76,7 +76,6 @@ This chatbot offers an engaging, image-aware chat experience tailored for photog
 - **AI-Generated Image Descriptions**: Automatically extract image context and tags (mocked using a placeholder for Gemini Vision).
 - **Serper.dev Integration**: Searches Google to recommend nearby photography spots based on image aesthetics and user location.
 - **SQLite Integration**: Stores image descriptions, tags, location, and suggestions for future reference.
-- **Search Your History**: Use keywords like "tulips", "beach", or "sunset" to find past inspirations.
 
 ---
 
@@ -112,4 +111,5 @@ pip install -r requirements.txt
 1. Search if there are images from the SQLite DB based on tags i.e. previous uploads
 2. Integrate function calling to perform the above using search using natural language
 3. View past chat and then based on specific users past chat
+4. Search Your History- Use keywords like "tulips", "beach", or "sunset" to find past inspirations.
 
