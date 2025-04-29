@@ -1,254 +1,146 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyOUuw6LG0Vq0jPSBwqz0DMr",
-      "include_colab_link": True
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {
-        "id": "view-in-github",
-        "colab_type": "text"
-      },
-      "source": [
-        "<a href=\"https://colab.research.google.com/github/avanthika1302/Photo-Assistant-Chatbot/blob/main/photo_assistant_chatbot.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "import streamlit as st\n",
-        "import time, io\n",
-        "import helper\n",
-        "import toml\n",
-        "import google.generativeai as genai\n",
-        "from google.generativeai import GenerativeModel\n",
-        "from PIL import Image\n",
-        "\n",
-        "# Access the keys\n",
-        "GOOGLE_API_KEY = st.secrets[\"GOOGLE_API_KEY\"]\n",
-        "SERPER_API_KEY = st.secrets[\"SERPER_API_KEY\"]\n",
-        "\n",
-        "# Load your API key from Streamlit secrets\n",
-        "genai.configure(api_key=GOOGLE_API_KEY)\n",
-        "\n",
-        "\n",
-        "# --- Session state init ---\n",
-        "if \"messages\" not in st.session_state:\n",
-        "    st.session_state.messages = []\n",
-        "if \"user_info\" not in st.session_state:\n",
-        "    st.session_state.user_info = {}\n",
-        "if \"user_history\" not in st.session_state:\n",
-        "    st.session_state.user_history = []\n",
-        "if \"last_image\" not in st.session_state:\n",
-        "    st.session_state.last_image = None\n",
-        "if \"last_ModelOP\" not in st.session_state:\n",
-        "    st.session_state.last_ModelOP = None\n",
-        "if \"last_DBinsert\" not in st.session_state:\n",
-        "    st.session_state.last_DBinsert = \"\"\n",
-        "\n",
-        "# Sidebar user session management\n",
-        "st.sidebar.title(\"User Session\")\n",
-        "\n",
-        "if st.sidebar.button(\"Reset Session\"):\n",
-        "    st.session_state.clear()\n",
-        "    st.rerun()\n",
-        "\n",
-        "\n",
-        "# Get user info\n",
-        "if not st.session_state.user_info:\n",
-        "    st.title(\"📸 Smart Photography Assistant\")\n",
-        "    st.subheader(\"Tell us about you to get started\")\n",
-        "\n",
-        "    name = st.text_input(\"Your Name\", key=\"name_input\")\n",
-        "    email = st.text_input(\"Your Email\", key=\"email_input\")\n",
-        "    location = st.text_input(\"Location of interest\", key=\"loc_input\")\n",
-        "\n",
-        "    if st.button(\"Start Session\"):\n",
-        "        if name and email and location:\n",
-        "            st.session_state.user_info = {\n",
-        "                \"name\": name,\n",
-        "                \"email\": email,\n",
-        "                \"location\": location\n",
-        "            }\n",
-        "            st.rerun()\n",
-        "        else:\n",
-        "            st.warning(\"Please fill in all fields.\")\n",
-        "    st.stop()\n",
-        "\n",
-        "# --- Main Chat UI ---\n",
-        "# Display chat history\n",
-        "\n",
-        "st.title(\"📸 Smart Photography Assistant\")\n",
-        "st.subheader(\"Welcome \" + st.session_state.user_info[\"name\"]+\"!\")\n",
-        "st.markdown(\"Hi! I'm your Photo Assistant 🤖. Here's what I can do:\")\n",
-        "st.markdown(\"\"\"\n",
-        "                - 📝 Describe an uploaded photo\n",
-        "                - 📸 Social media captions and tags\n",
-        "                - 🌤️ Ideal weather for similar pictures\n",
-        "                - 🖼️ Photo elements for this picture and type of photography\n",
-        "                - 📍 Suggest nearby photo spots\n",
-        "                - ⬆️ Upload a new pic\n",
-        "                - 🔄 Clear all and start over\n",
-        "                Just type your option and I'll help!\n",
-        "                \"\"\")\n",
-        "\n",
-        "for msg in st.session_state.messages:\n",
-        "    with st.chat_message(msg[\"role\"]):\n",
-        "        st.markdown(msg[\"content\"])\n",
-        "\n",
-        "uploaded_file = st.file_uploader(\"Upload a photo to proceed\", type=[\"jpg\", \"jpeg\", \"png\"], key=\"file_uploader\")\n",
-        "\n",
-        "# Handle file upload\n",
-        "if st.button(\"Browse, Select & Upload\"):\n",
-        "    try:\n",
-        "        st.session_state.last_image = uploaded_file.read()\n",
-        "        st.info(\"Uploading your photo...\")\n",
-        "\n",
-        "        image = Image.open(io.BytesIO(st.session_state.last_image))\n",
-        "        with st.chat_message(\"assistant\"):\n",
-        "                st.markdown(\"Here is the image uploaded\")\n",
-        "                st.image(image, caption=\"Your uploaded image\", use_column_width=True)\n",
-        "        st.info(\"Analyzing using the Model...\")\n",
-        "\n",
-        "        with st.chat_message(\"assistant\"):\n",
-        "            st.markdown(\"Thanks for uploading!\")\n",
-        "\n",
-        "        with st.spinner(\"Working on Photo Analysis...\"):\n",
-        "            #time.sleep(10)\n",
-        "            try:\n",
-        "                ModelOP = helper.generate_description(st.session_state.last_image, st.session_state.user_info[\"location\"])\n",
-        "                insights = helper.clean_json(ModelOP.text)\n",
-        "                DBinsert = helper.insert_image_metadata(st.session_state.user_info[\"name\"],st.session_state.user_info[\"email\"],st.session_state.user_info[\"location\"],st.session_state.user_info[\"location\"],insights)\n",
-        "\n",
-        "            except Exception as e:\n",
-        "                insights = \"\"\n",
-        "                st.error(\"error performing analysis\")\n",
-        "\n",
-        "        st.session_state.last_ModelOP = insights\n",
-        "        st.session_state.last_DBinsert = DBinsert\n",
-        "\n",
-        "        st.info(\"Ready, lets discuss about the image...\")\n",
-        "        st.session_state.show_upload = False\n",
-        "\n",
-        "    except Exception as e:\n",
-        "        st.error('Upload a file..')\n",
-        "\n",
-        "\n",
-        "user_input = st.chat_input(\"What would you like to do?\", key=\"chat_box\")\n",
-        "\n",
-        "if user_input is not None and st.session_state.last_ModelOP is not None:\n",
-        "    with st.spinner(\"Model responding...\"):\n",
-        "        # simulate delay or processing\n",
-        "        time.sleep(5)\n",
-        "\n",
-        "    st.session_state.messages.append({\"role\": \"user\", \"content\": user_input})\n",
-        "\n",
-        "    # Handle commands\n",
-        "    cmd = user_input.lower()\n",
-        "    response = \"\"\n",
-        "\n",
-        "    if \"start\" in cmd or \"reset\" in cmd:\n",
-        "        st.session_state.clear()\n",
-        "        st.rerun()\n",
-        "\n",
-        "    elif \"upload\" in cmd:\n",
-        "        response = \"Upload a pic...\"\n",
-        "        st.session_state.show_upload = True\n",
-        "\n",
-        "    else:\n",
-        "        OPModel2 = helper.answer_question_from_json(st.session_state.last_ModelOP,cmd)\n",
-        "        response = OPModel2\n",
-        "\n",
-        "    st.session_state.messages.append({\"role\": \"assistant\", \"content\": response})\n",
-        "\n",
-        "    st.rerun()  # Only needed once at the end to reflect both messages"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/",
-          "height": 1000
-        },
-        "id": "XkhUg55KQRxQ",
-        "outputId": "67a907b9-b7f6-4057-aa11-accc6b87af0d"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stderr",
-          "text": [
-            "2025-04-24 03:35:32.576 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.576 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.577 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.578 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.579 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.579 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.580 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.581 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.582 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.582 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.583 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.584 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.585 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.586 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.586 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.587 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.588 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.588 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.589 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.589 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.590 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.591 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.591 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.592 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.593 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.594 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.594 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.597 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.598 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.598 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.599 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.599 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.600 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.601 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.601 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.602 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.602 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.603 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n",
-            "2025-04-24 03:35:32.603 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\n"
-          ]
-        },
-        {
-          "output_type": "error",
-          "ename": "KeyError",
-          "evalue": "'name'",
-          "traceback": [
-            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
-            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
-            "\u001b[0;32m<ipython-input-5-7247decebab8>\u001b[0m in \u001b[0;36m<cell line: 0>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     52\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     53\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtitle\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"📸 Smart Photography Assistant\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 54\u001b[0;31m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msubheader\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Welcome \"\u001b[0m \u001b[0;34m+\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msession_state\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0muser_info\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m\"name\"\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0;34m\"!\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     55\u001b[0m \u001b[0mst\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmarkdown\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Hi! I'm your Photo Assistant 🤖. Here's what I can do:\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     56\u001b[0m st.markdown(\"\"\"\n",
-            "\u001b[0;31mKeyError\u001b[0m: 'name'"
-          ]
-        }
-      ]
-    }
-  ]
-}
+import streamlit as st
+import time, io
+import helper
+import toml
+import google.generativeai as genai
+from google.generativeai import GenerativeModel
+from PIL import Image
+
+# Access the keys
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+SERPER_API_KEY = st.secrets["SERPER_API_KEY"]
+
+# Load your API key from Streamlit secrets
+genai.configure(api_key=GOOGLE_API_KEY)
+
+
+# --- Session state init ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "user_info" not in st.session_state:
+    st.session_state.user_info = {}
+if "user_history" not in st.session_state:
+    st.session_state.user_history = []
+if "last_image" not in st.session_state:
+    st.session_state.last_image = None
+if "last_ModelOP" not in st.session_state:
+    st.session_state.last_ModelOP = None
+if "last_DBinsert" not in st.session_state:
+    st.session_state.last_DBinsert = ""
+
+# Sidebar user session management
+st.sidebar.title("User Session")
+
+if st.sidebar.button("Reset Session"):
+    st.session_state.clear()
+    st.rerun()
+
+
+# Get user info
+if not st.session_state.user_info:
+    st.title("📸 Smart Photography Assistant")
+    st.subheader("Tell us about you to get started")
+
+    name = st.text_input("Your Name", key="name_input")
+    email = st.text_input("Your Email", key="email_input")
+    location = st.text_input("Location of interest", key="loc_input")
+
+    if st.button("Start Session"):
+        if name and email and location:
+            st.session_state.user_info = {
+                "name": name,
+                "email": email,
+                "location": location
+            }
+            st.rerun()
+        else:
+            st.warning("Please fill in all fields.")
+    st.stop()
+
+# --- Main Chat UI ---
+# Display chat history
+
+st.title("📸 Smart Photography Assistant")
+st.subheader("Welcome " + st.session_state.user_info["name"]+"!")
+st.markdown("Hi! I'm your Photo Assistant 🤖. Here's what I can do:")
+st.markdown("""
+                - 📝 Describe an uploaded photo
+                - 📸 Social media captions and tags
+                - 🌤️ Ideal weather for similar pictures
+                - 🖼️ Photo elements for this picture and type of photography
+                - 📍 Suggest nearby photo spots
+                - ⬆️ Upload a new pic
+                - 🔄 Clear all and start over
+                Just type your option and I'll help!
+                """)
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+uploaded_file = st.file_uploader("Upload a photo to proceed", type=["jpg", "jpeg", "png"], key="file_uploader")
+
+# Handle file upload
+if st.button("Browse, Select & Upload"):
+    try:
+        st.session_state.last_image = uploaded_file.read()
+        st.info("Uploading your photo...")
+
+        image = Image.open(io.BytesIO(st.session_state.last_image))
+        with st.chat_message("assistant"):
+                st.markdown("Here is the image uploaded")
+                st.image(image, caption="Your uploaded image", use_column_width=True)
+        st.info("Analyzing using the Model...")
+
+        with st.chat_message("assistant"):
+            st.markdown("Thanks for uploading!")
+
+        with st.spinner("Working on Photo Analysis..."):
+            #time.sleep(10)
+            try:
+                ModelOP = helper.generate_description(st.session_state.last_image, st.session_state.user_info["location"])
+                insights = helper.clean_json(ModelOP.text)
+                DBinsert = helper.insert_image_metadata(st.session_state.user_info["name"],st.session_state.user_info["email"],st.session_state.user_info["location"],st.session_state.user_info["location"],insights)
+
+            except Exception as e:
+                insights = ""
+                st.error("error performing analysis")
+
+        st.session_state.last_ModelOP = insights
+        st.session_state.last_DBinsert = DBinsert
+
+        st.info("Ready, lets discuss about the image...")
+        st.session_state.show_upload = False
+
+    except Exception as e:
+        st.error('Upload a file..')
+
+
+user_input = st.chat_input("What would you like to do?", key="chat_box")
+
+if user_input is not None and st.session_state.last_ModelOP is not None:
+    with st.spinner("Model responding..."):
+        # simulate delay or processing
+        time.sleep(5)
+
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    # Handle commands
+    cmd = user_input.lower()
+    response = ""
+
+    if "start" in cmd or "reset" in cmd:
+        st.session_state.clear()
+        st.rerun()
+
+    elif "upload" in cmd:
+        response = "Upload a pic..."
+        st.session_state.show_upload = True
+
+    else:
+        OPModel2 = helper.answer_question_from_json(st.session_state.last_ModelOP,cmd)
+        response = OPModel2
+
+    st.session_state.messages.append({"role": "assistant", "content": response})
+
+    st.rerun()  # Only needed once at the end to reflect both messages
