@@ -1,225 +1,185 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyPMeNeSp51WRm/zM9dOMvkM",
-      "include_colab_link": True
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
+import sqlite3, re, json, requests
+from google.generativeai import GenerativeModel
+import google.generativeai as genai
+import toml,io
+import streamlit as st
+from PIL import Image
+
+# Function to generate insights from image and location
+def generate_description(imagefile, location):
+    # Load the .toml file
+    #secrets = toml.load("secrets.toml")
+
+    GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']
+
+    prompt = """
+    You are a professional photography assistant.
+    Analyze this photo and describe:
+
+    1. The scene and type of location.
+    2. exact location where the pic might have been taken
+    3. tags for this picture as a list
+    4. The optimal time of day and weather for this type of photo.
+    5. Key photographic elements.
+    6. Ideal use case for the photo (e.g., family shoots, fashion, travel).
+    7. Add in at least 4 different appropriate social media captions with 10 trending hashtags to the picture as a bonus.
+    8. Suggest nearby or similar locations for taking such photos based on the user's location.
+
+    Return the response in JSON format with keys:
+    - desc
+    - location
+    - tags
+    - OptWeather
+    - Elements
+    - UseCase
+    - SMCaption
+    - NearbySpots
+    """
+    try:
+        # Configure API key
+        genai.configure(api_key=GOOGLE_API_KEY)
+
+        # Use a GenerativeModel instance
+        model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+
+        # Convert bytes to PIL Image
+        image = Image.open(io.BytesIO(imagefile))
+
+        # Send the image and prompt as parts of the input
+        response = model.generate_content(
+            [image, prompt],
+            stream=False  # Optional: stream=True for partial response
+        )
+
+    except Exception as e:
+        # Catch potential API errors or other issues
+        print(f"An error occurred during LLM generation: {e}")
+        response = "Sorry, I encountered an error while trying to answer your question."
+
+    return response
+
+
+
+# Parse JSON safely
+def clean_json(text):
+    try:
+        json_match = re.search(r"\{.*\}", text, re.DOTALL)
+        return json.loads(json_match.group()) if json_match else {}
+    except Exception as e:
+        #st.error("Failed to parse JSON: " + str(e))
+        return {"Failed to parse JSON: " + str(e)}
+
+# Save metadata to SQLite
+def init_db(db_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS photos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT,
+            location TEXT,
+            image BLOB,
+            metadata TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def insert_image_metadata(name, email, imagefile, location, metadata):
+
+    db_path = "userimages.db"
+
+    try:
+        init_db(db_path)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO photos (name, email, location, image, metadata) VALUES (?, ?, ?, ?, ?)",
+                        (name, email, location, imagefile, json.dumps(metadata)))
+        conn.commit()
+        conn.close()
+        return "success"
+    except Exception as e:
+        return str(e)
+
+def search_similar_places(tags, location):
+
+    #secrets = toml.load("secrets.toml")
+    SERPER_API_KEY = st.secrets['SERPER_API_KEY']
+
+    query = f"photography spots with {', '.join(tags)} in {location}"
+    headers = {
+        "X-API-KEY": SERPER_API_KEY ,
+        "Content-Type": "application/json"
     }
-  },
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {
-        "id": "view-in-github",
-        "colab_type": "text"
-      },
-      "source": [
-        "<a href=\"https://colab.research.google.com/github/avanthika1302/Photo-Assistant-Chatbot/blob/main/helper.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "execution_count": null,
-      "metadata": {
-        "id": "YoinueqV-UkR"
-      },
-      "outputs": [],
-      "source": [
-        "import sqlite3, re, json, requests\n",
-        "from google.generativeai import GenerativeModel\n",
-        "import google.generativeai as genai\n",
-        "import toml,io\n",
-        "import streamlit as st\n",
-        "from PIL import Image\n",
-        "\n",
-        "# Function to generate insights from image and location\n",
-        "def generate_description(imagefile, location):\n",
-        "    # Load the .toml file\n",
-        "    #secrets = toml.load(\"secrets.toml\")\n",
-        "\n",
-        "    GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']\n",
-        "\n",
-        "    prompt = \"\"\"\n",
-        "    You are a professional photography assistant.\n",
-        "    Analyze this photo and describe:\n",
-        "\n",
-        "    1. The scene and type of location.\n",
-        "    2. exact location where the pic might have been taken\n",
-        "    3. tags for this picture as a list\n",
-        "    4. The optimal time of day and weather for this type of photo.\n",
-        "    5. Key photographic elements.\n",
-        "    6. Ideal use case for the photo (e.g., family shoots, fashion, travel).\n",
-        "    7. Add in at least 4 different appropriate social media captions with 10 trending hashtags to the picture as a bonus.\n",
-        "    8. Suggest nearby or similar locations for taking such photos based on the user's location.\n",
-        "\n",
-        "    Return the response in JSON format with keys:\n",
-        "    - desc\n",
-        "    - location\n",
-        "    - tags\n",
-        "    - OptWeather\n",
-        "    - Elements\n",
-        "    - UseCase\n",
-        "    - SMCaption\n",
-        "    - NearbySpots\n",
-        "    \"\"\"\n",
-        "    try:\n",
-        "        # Configure API key\n",
-        "        genai.configure(api_key=GOOGLE_API_KEY)\n",
-        "\n",
-        "        # Use a GenerativeModel instance\n",
-        "        model = genai.GenerativeModel(model_name=\"gemini-2.0-flash\")\n",
-        "\n",
-        "        # Convert bytes to PIL Image\n",
-        "        image = Image.open(io.BytesIO(imagefile))\n",
-        "\n",
-        "        # Send the image and prompt as parts of the input\n",
-        "        response = model.generate_content(\n",
-        "            [image, prompt],\n",
-        "            stream=False  # Optional: stream=True for partial response\n",
-        "        )\n",
-        "\n",
-        "    except Exception as e:\n",
-        "        # Catch potential API errors or other issues\n",
-        "        print(f\"An error occurred during LLM generation: {e}\")\n",
-        "        response = \"Sorry, I encountered an error while trying to answer your question.\"\n",
-        "\n",
-        "    return response\n",
-        "\n",
-        "\n",
-        "\n",
-        "# Parse JSON safely\n",
-        "def clean_json(text):\n",
-        "    try:\n",
-        "        json_match = re.search(r\"\\{.*\\}\", text, re.DOTALL)\n",
-        "        return json.loads(json_match.group()) if json_match else {}\n",
-        "    except Exception as e:\n",
-        "        #st.error(\"Failed to parse JSON: \" + str(e))\n",
-        "        return {\"Failed to parse JSON: \" + str(e)}\n",
-        "\n",
-        "# Save metadata to SQLite\n",
-        "def init_db(db_path):\n",
-        "    conn = sqlite3.connect(db_path)\n",
-        "    cursor = conn.cursor()\n",
-        "    cursor.execute(\"\"\"\n",
-        "        CREATE TABLE IF NOT EXISTS photos (\n",
-        "            id INTEGER PRIMARY KEY AUTOINCREMENT,\n",
-        "            name TEXT,\n",
-        "            email TEXT,\n",
-        "            location TEXT,\n",
-        "            image BLOB,\n",
-        "            metadata TEXT\n",
-        "        )\n",
-        "    \"\"\")\n",
-        "    conn.commit()\n",
-        "    conn.close()\n",
-        "\n",
-        "def insert_image_metadata(name, email, imagefile, location, metadata):\n",
-        "\n",
-        "    db_path = \"userimages.db\"\n",
-        "\n",
-        "    try:\n",
-        "        init_db(db_path)\n",
-        "        conn = sqlite3.connect(db_path)\n",
-        "        cursor = conn.cursor()\n",
-        "        cursor.execute(\"INSERT INTO photos (name, email, location, image, metadata) VALUES (?, ?, ?, ?, ?)\",\n",
-        "                        (name, email, location, imagefile, json.dumps(metadata)))\n",
-        "        conn.commit()\n",
-        "        conn.close()\n",
-        "        return \"success\"\n",
-        "    except Exception as e:\n",
-        "        return str(e)\n",
-        "\n",
-        "def search_similar_places(tags, location):\n",
-        "\n",
-        "    #secrets = toml.load(\"secrets.toml\")\n",
-        "    SERPER_API_KEY = st.secrets['SERPER_API_KEY']\n",
-        "\n",
-        "    query = f\"photography spots with {', '.join(tags)} in {location}\"\n",
-        "    headers = {\n",
-        "        \"X-API-KEY\": SERPER_API_KEY ,\n",
-        "        \"Content-Type\": \"application/json\"\n",
-        "    }\n",
-        "    payload = {\"q\": query, \"type\": \"images\"}\n",
-        "    response = requests.post(\"https://google.serper.dev/search\", headers=headers, json=payload)\n",
-        "    if response.status_code == 200:\n",
-        "        results = response.json()\n",
-        "        return results.get(\"images\", [])[:3]\n",
-        "    else:\n",
-        "        return []\n",
-        "\n",
-        "# --- Function for natural language chat ---\n",
-        "def answer_question_from_json(json_string_from_vision_model: str, user_question: str) -> str:\n",
-        "    \"\"\"\n",
-        "    Answers a user's question based *only* on the provided JSON data.\n",
-        "\n",
-        "    Args:\n",
-        "        json_string_from_vision_model: The JSON string output generated by the\n",
-        "                                       vision model in the previous step.\n",
-        "        user_question: The follow-up question asked by the user.\n",
-        "\n",
-        "    Returns:\n",
-        "        The answer generated by the text LLM, or an error message.\n",
-        "\"\"\"\n",
-        "    #secrets = toml.load(\"secrets.toml\")\n",
-        "\n",
-        "    GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']\n",
-        "\n",
-        "    # --- Construct the prompt for the text LLM ---\n",
-        "    # This prompt explicitly tells the model to use *only* the provided JSON\n",
-        "    prompt = f\"\"\"\n",
-        "    You are an assistant answering questions based on the provided JSON data below,\n",
-        "    which describes a photograph. Do not use any external knowledge or information\n",
-        "    not present in the JSON. If the answer cannot be found in the JSON,\n",
-        "    say so but also give a slightly creative within the realm of the JSON. Also do not talk about the other models performance\n",
-        "\n",
-        "    JSON Data:\n",
-        "    ```json\n",
-        "    {json_string_from_vision_model}\n",
-        "    ```\n",
-        "\n",
-        "    User's Question:\n",
-        "    \"{user_question}\"\n",
-        "\n",
-        "    Answer based strictly on the input data:\n",
-        "    \"\"\"\n",
-        "\n",
-        "    # --- Call the text LLM API ---\n",
-        "    try:\n",
-        "        # Configure API key\n",
-        "        genai.configure(api_key=GOOGLE_API_KEY)\n",
-        "\n",
-        "      # Use a GenerativeModel instance\n",
-        "        model = genai.GenerativeModel(model_name=\"gemini-2.0-flash\")\n",
-        "\n",
-        "      # Send the image and prompt as parts of the input\n",
-        "        response = model.generate_content(\n",
-        "            prompt,\n",
-        "            stream=False  # Optional: stream=True for partial response\n",
-        "        )\n",
-        "\n",
-        "        # Basic safety check (can be more robust)\n",
-        "        if response.text:\n",
-        "            return response.text.strip()\n",
-        "        elif response.prompt_feedback.block_reason:\n",
-        "             return f\"Blocked: {response.prompt_feedback.block_reason.name}. Cannot generate answer.\"\n",
-        "        else:\n",
-        "             # Handle cases where response might be empty unexpectedly\n",
-        "             return \"Sorry, I could not generate an answer based on the provided information.\"\n",
-        "\n",
-        "    except Exception as e:\n",
-        "        # Catch potential API errors or other issues\n",
-        "        print(f\"An error occurred during LLM generation: {e}\")\n",
-        "        return \"Sorry, I encountered an error while trying to answer your question.\"\n"
-      ]
-    }
-  ]
-}
+    payload = {"q": query, "type": "images"}
+    response = requests.post("https://google.serper.dev/search", headers=headers, json=payload)
+    if response.status_code == 200:
+        results = response.json()
+        return results.get("images", [])[:3]
+    else:
+        return []
+
+# --- Function for natural language chat ---
+def answer_question_from_json(json_string_from_vision_model: str, user_question: str) -> str:
+    """
+    Answers a user's question based *only* on the provided JSON data.
+
+    Args:
+        json_string_from_vision_model: The JSON string output generated by the
+                                       vision model in the previous step.
+        user_question: The follow-up question asked by the user.
+
+    Returns:
+        The answer generated by the text LLM, or an error message.
+"""
+
+    GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']
+
+    # --- Construct the prompt for the text LLM ---
+    # This prompt explicitly tells the model to use *only* the provided JSON
+  
+    prompt = f"""
+    You are an assistant answering questions based on the provided JSON data below,
+    which describes a photograph. Do not use any external knowledge or information
+    not present in the JSON. If the answer cannot be found in the JSON,
+    say so but also give a slightly creative within the realm of the JSON. Also do not talk about the other models performance
+
+    JSON Data:
+    ```json
+    {json_string_from_vision_model}
+    ```
+
+    User's Question:
+    "{user_question}"
+
+    Answer based strictly on the input data:
+    """
+
+    # --- Call the text LLM API ---
+    try:
+        # Configure API key
+        genai.configure(api_key=GOOGLE_API_KEY)
+
+      # Use a GenerativeModel instance
+        model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+
+      # Send the image and prompt as parts of the input
+        response = model.generate_content(
+            prompt,
+            stream=False  # Optional: stream=True for partial response
+        )
+
+        # Basic safety check (can be more robust)
+        if response.text:
+            return response.text.strip()
+        elif response.prompt_feedback.block_reason:
+             return f"Blocked: {response.prompt_feedback.block_reason.name}. Cannot generate answer."
+        else:
+             # Handle cases where response might be empty unexpectedly
+             return "Sorry, I could not generate an answer based on the provided information."
+
+    except Exception as e:
+        # Catch potential API errors or other issues
+        print(f"An error occurred during LLM generation: {e}")
+        return "Sorry, I encountered an error while trying to answer your question."
