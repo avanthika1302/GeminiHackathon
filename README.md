@@ -66,7 +66,7 @@ This chatbot offers an engaging, image-aware chat experience tailored for photog
 
 ## Demo
 
-> Live Demo: [Streamlit Cloud App](https://your-app-url.streamlit.app)
+> Live Demo: [Streamlit Cloud App]([https://photo-assistant-chatbot.streamlit.app/])
 
 ---
 
